@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>For My Babyyyyy ❤️</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; width: 100%; height: 100%; overflow: hidden;
+    background: #000; font-family: "Trebuchet MS", Arial, sans-serif;
+  }
+  body { display: grid; place-items: center; }
+  .stage {
+    position: relative; width: min(100vw, 100vh); height: min(100vw, 100vh);
+    display: grid; place-items: center; overflow: hidden;
+  }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .message {
+    position: absolute; z-index: 2; left: 50%; top: 50%;
+    width: 90%; transform: translate(-50%, -50%) scale(.88);
+    text-align: center; color: #fff; opacity: 0; pointer-events: none;
+    font-weight: 800; font-size: clamp(24px, 5.3vw, 48px);
+    line-height: 1.25; letter-spacing: .02em;
+    text-shadow: 0 0 8px #ff168f, 0 0 18px #ff168f, 0 0 38px #ff168f;
+  }
+  .message.show {
+    animation: messagePop 1.2s cubic-bezier(.18,.89,.32,1.28) forwards,
+               messagePulse 1.8s ease-in-out 1.2s infinite;
+  }
+  @keyframes messagePop {
+    0% { opacity: 0; transform: translate(-50%, -40%) scale(.55); filter: blur(8px); }
+    65% { opacity: 1; transform: translate(-50%, -53%) scale(1.08); filter: blur(0); }
+    100% { opacity: 1; transform: translate(-50%, -50%) scale(1); filter: blur(0); }
+  }
+  @keyframes messagePulse {
+    0%, 100% { text-shadow: 0 0 8px #ff168f, 0 0 18px #ff168f, 0 0 38px #ff168f; }
+    50% { text-shadow: 0 0 12px #ff4cac, 0 0 28px #ff168f, 0 0 52px #ff168f; }
+  }
+  #musicButton {
+    position: fixed; z-index: 5; bottom: max(18px, env(safe-area-inset-bottom));
+    left: 50%; transform: translateX(-50%);
+    border: 1px solid rgba(255,105,180,.8); border-radius: 999px;
+    padding: 11px 18px; color: white; background: rgba(35,0,22,.88);
+    font: 600 14px "Trebuchet MS", Arial, sans-serif;
+    box-shadow: 0 0 16px rgba(255,22,143,.45); cursor: pointer;
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <canvas id="heart" aria-label="Pink heart drawing itself on a black background"></canvas>
+  <div class="message" id="message">I love you my babyyyyy😘❤️</div>
+</div>
+<audio id="music" preload="auto" playsinline>
+  <source src="song.mp3" type="audio/mpeg">
+</audio>
+<button id="musicButton" type="button">❤️ Tap to play music</button>
+<script>
+(() => {
+  const canvas = document.getElementById("heart");
+  const ctx = canvas.getContext("2d");
+  const message = document.getElementById("message");
+  const music = document.getElementById("music");
+  const musicButton = document.getElementById("musicButton");
+  let size, dpr, points = [], index = 0, timer = null, restartTimer = null;
+
+  const DRAW_DELAY_MS = 45;
+  const MESSAGE_DURATION_MS = 10000;
+  const SONG_START_SECONDS = 45;
+
+  function setup() {
+    size = Math.min(window.innerWidth, window.innerHeight, 800);
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.style.width = size + "px";
+    canvas.style.height = size + "px";
+    canvas.width = Math.round(size * dpr);
+    canvas.height = Math.round(size * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildPoints();
+    startDrawing();
+  }
+
+  function buildPoints() {
+    points = [];
+    const scale = size / 46;
+    for (let i = 0; i < 320; i++) {
+      const a = 2 * Math.PI * i / 320;
+      const xo = 16 * Math.pow(Math.sin(a), 3) * scale;
+      const yo = (13 * Math.cos(a) - 5 * Math.cos(2*a)
+        - 2 * Math.cos(3*a) - Math.cos(4*a)) * scale;
+      const L = 0.15 + Math.random() * 0.35;
+      points.push({
+        x: size / 2 + xo, y: size / 2 - yo,
+        ix: size / 2 + xo * (1 - L), iy: size / 2 - yo * (1 - L)
+      });
+    }
+  }
+
+  function drawPoint(p) {
+    ctx.lineCap = "round";
+    for (let j = 0; j < 10; j++) {
+      const f = j / 10, f2 = (j + 1) / 10;
+      ctx.strokeStyle = `rgb(${Math.round(255 - 153*f)},${Math.round(178*(1-f))},${Math.round(204*(1-f))})`;
+      ctx.lineWidth = 2;
+      ctx.shadowColor = "#ff168f";
+      ctx.shadowBlur = 5;
+      ctx.beginPath();
+      ctx.moveTo(p.x + (p.ix - p.x) * f, p.y + (p.iy - p.y) * f);
+      ctx.lineTo(p.x + (p.ix - p.x) * f2, p.y + (p.iy - p.y) * f2);
+      ctx.stroke();
+    }
+  }
+
+  function startDrawing() {
+    clearTimeout(timer);
+    clearTimeout(restartTimer);
+    message.classList.remove("show");
+    void message.offsetWidth;
+    ctx.clearRect(0, 0, size, size);
+    buildPoints();
+    index = 0;
+    function step() {
+      if (index >= points.length) {
+        ctx.shadowBlur = 0;
+        message.classList.add("show");
+        restartTimer = setTimeout(startDrawing, MESSAGE_DURATION_MS);
+        return;
+      }
+      drawPoint(points[index++]);
+      timer = setTimeout(step, DRAW_DELAY_MS);
+    }
+    step();
+  }
+
+  async function startMusic() {
+    try {
+      if (music.currentTime < SONG_START_SECONDS || music.paused) {
+        // Wait until metadata is available before seeking.
+        if (music.readyState < 1) {
+          await new Promise((resolve, reject) => {
+            const onLoaded = () => { cleanup(); resolve(); };
+            const onError = () => { cleanup(); reject(new Error("Audio could not load")); };
+            const cleanup = () => {
+              music.removeEventListener("loadedmetadata", onLoaded);
+              music.removeEventListener("error", onError);
+            };
+            music.addEventListener("loadedmetadata", onLoaded, { once: true });
+            music.addEventListener("error", onError, { once: true });
+          });
+        }
+        music.currentTime = Math.min(SONG_START_SECONDS, Math.max(0, music.duration - 0.25));
+      }
+      await music.play();
+      musicButton.style.display = "none";
+    } catch (err) {
+      musicButton.style.display = "block";
+    }
+  }
+
+  // Attempt audible autoplay. Browsers may block it; the button is the fallback.
+  window.addEventListener("load", () => {
+    startMusic();
+  });
+
+  // Restart the chosen section from 00:31 whenever the track reaches its end.
+  music.addEventListener("ended", () => {
+    music.currentTime = SONG_START_SECONDS;
+    startMusic();
+  });
+
+  musicButton.addEventListener("click", () => {
+    startMusic();
+  });
+
+  window.addEventListener("resize", () => {
+    clearTimeout(timer);
+    clearTimeout(restartTimer);
+    setup();
+  });
+  setup();
+})();
+</script>
+</body>
+</html>
